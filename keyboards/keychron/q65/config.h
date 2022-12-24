@@ -19,6 +19,10 @@
 /* COL2ROW or ROW2COL */
 #define DIODE_DIRECTION ROW2COL
 
+/* key matrix size */
+#define MATRIX_ROWS 5
+#define MATRIX_COLS 16
+
 /* key matrix pins */
 #define MATRIX_ROW_PINS \
     { B4, B3, A15, A14, A13 }
@@ -50,6 +54,7 @@
 
 /* DIP switch */
 #define DIP_SWITCH_MATRIX_GRID  { {4,4} }
+#define SCAN_COUNT_MAX 100
 
 /* Turn off effects when suspended */
 #define RGB_DISABLE_WHEN_USB_SUSPENDED
@@ -115,3 +120,6 @@
 
 #define RGB_MATRIX_FRAMEBUFFER_EFFECTS
 #define RGB_MATRIX_KEYPRESSES
+
+/* Enable receive custom command from host */
+#define RAW_HID_CMD 0xAB

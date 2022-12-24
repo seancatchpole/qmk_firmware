@@ -16,6 +16,10 @@
 
 #pragma once
 
+/* key matrix size */
+#define MATRIX_ROWS 5
+#define MATRIX_COLS 16
+
 /* key matrix pins */
 #define MATRIX_ROW_PINS { B4, B3, A15, A14, A13 }
 #define MATRIX_COL_PINS { C14, C15, A0, A1, A2, A3, A4, A5, A6, A7, B0, B1, A8, A9, A10, B5 }
@@ -109,3 +113,7 @@
 
 #define RGB_MATRIX_FRAMEBUFFER_EFFECTS
 #define RGB_MATRIX_KEYPRESSES
+
+/* Enable receive custom command from host */
+#define RAW_HID_CMD 0xAB
+

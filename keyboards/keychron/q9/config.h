@@ -37,6 +37,7 @@
 
 /* DIP switch */
 #define DIP_SWITCH_MATRIX_GRID { { 3, 4 } }
+#define SCAN_COUNT_MAX 100
 
 /* RGB Matrix Driver Configuration */
 #define DRIVER_COUNT 1
@@ -112,3 +113,6 @@
 
 #define RGB_MATRIX_FRAMEBUFFER_EFFECTS
 #define RGB_MATRIX_KEYPRESSES
+
+/* Enable receive custom command from host */
+#define RAW_HID_CMD 0xAB

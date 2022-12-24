@@ -16,6 +16,10 @@
 
 #pragma once
 
+/* key matrix size */
+#define MATRIX_ROWS 6
+#define MATRIX_COLS 15
+
 /* key matrix pins */
 #define MATRIX_ROW_PINS \
     { B5, B4, B3, A15, A14, A13 }
@@ -33,6 +37,7 @@
 
 /* DIP switch */
 #define DIP_SWITCH_MATRIX_GRID  { {5,4} }
+#define SCAN_COUNT_MAX 100
 
 /* EEPROM Driver Configuration */
 #define WEAR_LEVELING_LOGICAL_SIZE 2048
@@ -44,3 +49,6 @@
 #define I2C1_TIMINGR_SDADEL 0U
 #define I2C1_TIMINGR_SCLH 15U
 #define I2C1_TIMINGR_SCLL 51U
+
+/* Enable receive custom command from host */
+#define RAW_HID_CMD 0xAB

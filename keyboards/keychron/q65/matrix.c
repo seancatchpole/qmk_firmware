@@ -58,14 +58,6 @@ static inline void setPinInputHigh_atomic(pin_t pin) {
     }
 }
 
-static inline uint8_t readMatrixPin(pin_t pin) {
-    if (pin != NO_PIN) {
-        return readPin(pin);
-    } else {
-        return 1;
-    }
-}
-
 // At 3.6V input, three nops (37.5ns) should be enough for all signals
 #define small_delay() __asm__ __volatile__("nop;nop;nop;\n\t" ::: "memory")
 #define compiler_barrier() __asm__ __volatile__("" ::: "memory")
@@ -147,19 +139,20 @@ static void unselect_col(uint8_t col) {
 }
 
 static void unselect_cols(void) {
+    // unselect column pins
     for (uint8_t x = 0; x < MATRIX_COLS; x++) {
         pin_t pin = col_pins[x];
+
         if (pin != NO_PIN) {
 #ifdef MATRIX_UNSELECT_DRIVE_HIGH
-            setPinOutput_writeHigh(pin);
+            writePinHigh_atomic(pin);
 #else
             setPinInputHigh_atomic(pin);
 #endif
-        } else {
-            if (x == 0)
-                // unselect shift Register
-                shiftOut(0xFF);
         }
+        if (x == 8)
+            // unselect Shift Register
+            shiftOut(0xFF);
     }
 }
 
@@ -182,31 +175,60 @@ static void matrix_init_pins(void) {
     }
 }
 
+#if PAL_IOPORTS_WIDTH == 8
+typedef uint8_t ioport_t;
+#elif PAL_IOPORTS_WIDTH == 16
+typedef uint16_t ioport_t;
+#elif PAL_IOPORTS_WIDTH == 32
+typedef uint32_t ioport_t;
+#else
+typedef ioportmask_t ioport_t;
+#endif
+
+#define read_pin_port_required(prev_index, pin) ((uint8_t)(prev_index) == (uint8_t)-1 || row_pins[(prev_index)] == NO_PIN || PAL_PORT(pin) != PAL_PORT(row_pins[(prev_index)]))
+
+#define read_pin_port(pin) ((ioport_t)palReadPort(PAL_PORT((pin))))
+
+#define is_pin_set(val, pin) (((val) & (1U << PAL_PAD((pin)))) != 0)
+
 static void matrix_read_rows_on_col(matrix_row_t current_matrix[], uint8_t current_col, matrix_row_t row_shifter) {
-    bool key_pressed = false;
+    bool     key_pressed = false;
+    ioport_t ports[ROWS_PER_HAND];
 
     // Select col
     if (!select_col(current_col)) { // select col
         return;                     // skip NO_PIN col
     }
-
     matrix_output_select_delay();
 
-    // For each row...
+    // Read all required pins
+#pragma GCC unroll 65534
     for (uint8_t row_index = 0; row_index < ROWS_PER_HAND; row_index++) {
-        // Check row pin state
-        if (readMatrixPin(row_pins[row_index]) == 0) {
-            // Pin LO, set col bit
-            current_matrix[row_index] |= row_shifter;
-            key_pressed = true;
-        } else {
-            // Pin HI, clear col bit
-            current_matrix[row_index] &= ~row_shifter;
-        }
+        const pin_t pin = row_pins[row_index];
+        if (pin == NO_PIN) continue;
+        // Only read port if we need to
+        if (read_pin_port_required(row_index - 1, pin))
+            ports[row_index] = read_pin_port(pin);
+        else
+            ports[row_index] = ports[row_index - 1];
     }
 
     // Unselect col
     unselect_col(current_col);
+
+    // For each row...
+#pragma GCC unroll 65534
+    for (uint8_t row_index = 0; row_index < ROWS_PER_HAND; row_index++) {
+        // Check row pin state
+        const pin_t pin = row_pins[row_index];
+        if (pin == NO_PIN) continue;
+        if (!is_pin_set(ports[row_index], pin)) {
+            // Pin LO, set col bit
+            current_matrix[row_index] |= row_shifter;
+            key_pressed = true;
+        }
+    }
+
     matrix_output_unselect_delay(current_col, key_pressed); // wait for all Row signals to go HIGH
 }
 
@@ -220,12 +242,24 @@ bool matrix_scan_custom(matrix_row_t current_matrix[]) {
 
     // Set col, read rows
     matrix_row_t row_shifter = MATRIX_ROW_SHIFTER;
+#pragma GCC unroll 65534
     for (uint8_t current_col = 0; current_col < MATRIX_COLS; current_col++, row_shifter <<= 1) {
         matrix_read_rows_on_col(curr_matrix, current_col, row_shifter);
     }
 
-    bool changed = memcmp(current_matrix, curr_matrix, sizeof(curr_matrix)) != 0;
-    if (changed) memcpy(current_matrix, curr_matrix, sizeof(curr_matrix));
+    matrix_row_t changed = 0;
+#pragma GCC unroll 65534
+    for (uint8_t current_row = 0; current_row < MATRIX_ROWS; current_row++) {
+        matrix_row_t i = curr_matrix[current_row];
+        i ^= current_matrix[current_row];
+        changed |= i;
+    }
 
+    if (changed) {
+#pragma GCC unroll 65534
+        for (uint8_t current_row = 0; current_row < MATRIX_ROWS; current_row++) {
+            current_matrix[current_row] = curr_matrix[current_row];
+        }
+    }
     return changed;
 }

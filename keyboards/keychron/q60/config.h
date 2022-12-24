@@ -16,6 +16,10 @@
 
 #pragma once
 
+/* key matrix size */
+#define MATRIX_ROWS 5
+#define MATRIX_COLS 14
+
 /* key matrix pins */
 #define MATRIX_ROW_PINS \
     { B4, B3, A15, A14, A13 }
@@ -44,6 +48,7 @@
 
 /* DIP switch */
 #define DIP_SWITCH_MATRIX_GRID  { {4,4} }
+#define SCAN_COUNT_MAX 100
 
 /* Disable DIP switch in matrix data */
 #define MATRIX_MASKED
@@ -108,3 +113,6 @@
 
 #define RGB_MATRIX_FRAMEBUFFER_EFFECTS
 #define RGB_MATRIX_KEYPRESSES
+
+/* Enable receive custom command from host */
+#define RAW_HID_CMD 0xAB
